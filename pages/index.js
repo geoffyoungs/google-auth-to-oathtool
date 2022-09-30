@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
 import { useRef, useState } from 'react';
-import parser from './otp.js';
+import parser from '../lib/otp.js';
 import { StyleRegistry } from 'styled-jsx';
 
 export default function Home() {
