@@ -1,12 +1,17 @@
 import Head from 'next/head'
 import styles from '../styles/Home.module.css'
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import parser from '../lib/otp.js';
-import { StyleRegistry } from 'styled-jsx';
 
 export default function Home() {
   const inputEl = useRef(null);
+  const videoRef = useRef(null);
+  const menuRef = useRef(null);
+  const [qr, setQR] = useState(false);
+  const [deviceID, setDeviceID] = useState(null);
+  const [devices, setDevices] = useState([]);
   const [list, setList] = useState([]);
+  const [scan, setScan] = useState(false);
 
   const parseURL = () => {
     const url = inputEl.current.value;
@@ -18,9 +23,79 @@ export default function Home() {
       setList([])
       // error
     }
-
-
   };
+
+  useEffect(() => {
+    if (devices.length == 0) {
+      navigator.mediaDevices.enumerateDevices().then(list => setDevices(list))
+    }
+    const bc = ('BarcodeDetector' in window);
+    if (bc !== qr) setQR(bc);
+    if (!bc) return;
+    if (!scan && videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  });
+
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+      // Check if device has camera
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // Use video without audio
+        const constraints = {
+          video: { width: 1280, height: 720 },
+          audio: false
+        }
+        if (deviceID)
+          constraints.video.deviceId = deviceID;
+
+        console.log('setup webcam stream')
+        // Start video stream
+        navigator.mediaDevices.getUserMedia(constraints).then(stream => videoRef.current.srcObject = stream).catch((err) => {
+          console.error(err);
+        });
+      }
+    const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+    let iv;
+      const detectCode = () => {
+        // Start detecting codes on to the video element
+        barcodeDetector.detect(videoRef.current).then(codes => {
+          // If no codes exit function
+          if (codes.length === 0) return;
+
+          for (const barcode of codes)  {
+            // Log the barcode to the console
+            if (barcode.rawValue) {
+              inputEl.current.value = barcode.rawValue;
+              clearInterval(iv);
+              videoRef.current.pause();
+
+              setTimeout(() => { setScan(false); parseURL();}, 2000)
+            }
+          }
+        }).catch(err => {
+          // Log an error if one happens
+          console.error(err);
+        })
+      }
+      iv = setInterval(detectCode, 300);
+      return (() => {
+        clearInterval(iv);
+      })
+  }), [videoRef, deviceID];
+
+  const updateDeviceID = () => {
+    setDeviceID(menuRef.current.value);
+  };
+
+  const menu = <div className={styles.fullscreen}>
+    <button className={styles.close} onClick={() => setScan(false)}>&times;</button>
+    <select className={styles.fullscreen_select} ref={menuRef} onChange={updateDeviceID} selected={deviceID}>{devices.map((dev, index) => <option key={index} value={dev.deviceId}>{dev.label}</option>)}</select>
+    <video ref={videoRef} id="video" width="1280" height="720" controls={false} autoPlay></video>
+  </div>;
+
 
   return (
     <div className={styles.container}>
@@ -35,10 +110,14 @@ export default function Home() {
           Google Auth &gt; oathtool
         </h1>
 
+        {qr && scan ? menu : <></>}
+
         <div className={styles.description}>
-          <textarea ref={inputEl} type="text" placeholder="Paste otpauth-migration:// URL here..." className={styles.largeinput} onChange={parseURL} name="oauth-migration-url" />
+          <textarea ref={inputEl} type="text" placeholder="Paste otpauth-migration:// URL here..."
+            className={styles.largeinput} onChange={parseURL} name="oauth-migration-url" />
           <div>
-          <button onClick={parseURL}>Update</button>
+          <button className={styles.button} onClick={parseURL}>Update</button>
+          {qr ? <button className={styles.button} onClick={() => setScan(true)}>Scan QR</button> : <></>}
           </div>
         </div>
 
