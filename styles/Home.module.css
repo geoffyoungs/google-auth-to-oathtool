@@ -12,6 +12,11 @@
   align-items: center;
 }
 
+.largeinput {
+  line-height: 1.2rem;
+  min-width: 80vw;
+}
+
 .footer {
   display: flex;
   flex: 1;
@@ -42,7 +47,7 @@
 .title {
   margin: 0;
   line-height: 1.15;
-  font-size: 4rem;
+  font-size: 2rem;
 }
 
 .title,
@@ -50,6 +55,16 @@
   text-align: center;
 }
 
+.code {
+  background: #ccc;
+  font-size: 1rem;
+  border: 1px solid #999;
+}
+
+.prompt {
+  user-select: none;
+  color: #666;
+}
 .description {
   margin: 4rem 0;
   line-height: 1.5;
