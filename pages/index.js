@@ -33,9 +33,19 @@ export default function Home() {
     if (bc !== qr) setQR(bc);
     if (!bc) return;
     if (!scan && videoRef.current) {
+      if (videoRef.current.srcObject)
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   });
+
+  const stop = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setScan(false)
+  };
 
 
   useEffect(() => {
@@ -72,7 +82,12 @@ export default function Home() {
               clearInterval(iv);
               videoRef.current.pause();
 
-              setTimeout(() => { setScan(false); parseURL();}, 2000)
+              setTimeout(() => {
+                setScan(false);
+                parseURL();
+                if (videoRef.current && videoRef.current.srcObject)
+                   videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+              }, 2000)
             }
           }
         }).catch(err => {
@@ -83,6 +98,8 @@ export default function Home() {
       iv = setInterval(detectCode, 300);
       return (() => {
         clearInterval(iv);
+        if (videoRef.current && videoRef.current.srcObject)
+          videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       })
   }), [videoRef, deviceID];
 
@@ -91,7 +108,7 @@ export default function Home() {
   };
 
   const menu = <div className={styles.fullscreen}>
-    <button className={styles.close} onClick={() => setScan(false)}>&times;</button>
+    <button className={styles.close} onClick={stop}>&times;</button>
     <select className={styles.fullscreen_select} ref={menuRef} onChange={updateDeviceID} selected={deviceID}>{devices.map((dev, index) => <option key={index} value={dev.deviceId}>{dev.label}</option>)}</select>
     <video ref={videoRef} id="video" width="1280" height="720" controls={false} autoPlay></video>
   </div>;
